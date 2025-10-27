@@ -18,16 +18,16 @@ const startCameraBtn=document.getElementById('startCameraBtn');
       let photos = []; // data URLs
 
       const messages = [
-        {from:'Luca', text:'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'},
-        {from:'Maya', text:'Vestibulum ante ipsum primis in faucibus orci luctus.'},
-        {from:'Team', text:'Curabitur non nulla sit amet nisl tempus convallis quis ac lectus.'},
-        {from:'Anna', text:'Praesent sapien massa, convallis a pellentesque nec.'},
-        {from:'Max', text:'Sed porttitor lectus nibh. Mauris blandit aliquet elit.'},
-        {from:'Sam', text:'Integer nec odio. Praesent libero. Sed cursus ante dapibus.'},
-        {from:'Nina', text:'Fusce nec tellus sed augue semper porta.'},
-        {from:'Paul', text:'Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus.'},
-        {from:'Clara', text:'Donec rutrum congue leo eget malesuada.'},
-        {from:'Team', text:'Nulla quis lorem ut libero malesuada feugiat.'}
+        {from:'Chef', text:'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'},
+        {from:'Chef', text:'Vestibulum ante ipsum primis in faucibus orci luctus.'},
+        {from:'Chef', text:'Curabitur non nulla sit amet nisl tempus convallis quis ac lectus.'},
+        {from:'Chef', text:'Praesent sapien massa, convallis a pellentesque nec.'},
+        {from:'Chef', text:'Sed porttitor lectus nibh. Mauris blandit aliquet elit.'},
+        {from:'Chef', text:'Integer nec odio. Praesent libero. Sed cursus ante dapibus.'},
+        {from:'Chef', text:'Fusce nec tellus sed augue semper porta.'},
+        {from:'Chef', text:'Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus.'},
+        {from:'Chef', text:'Donec rutrum congue leo eget malesuada.'},
+        {from:'Chef', text:'Nulla quis lorem ut libero malesuada feugiat.'}
       ];
 
       // try to start camera with rear facing
