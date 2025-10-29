@@ -34,31 +34,31 @@
     const tasks = [
     {
         label: '"Fange den perfekten, blauen Himmel ein." -> Platziere die Gruppe vor einem blauen Himmel.',
-        img: 'gruppe-blau.png',
+        img: 'img/gruppe-blau.png',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
         label: '"Der Chef will Farbe!" -> Finde ein Motiv mit intensiven, bunten Flächen.',
-        img: 'gruppe-bunt.png',
+        img: 'img/gruppe-bunt.png',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> colorVariance(data,w,h) > 2000
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
-        img: 'gruppe-orange.png',
+        img: 'img/gruppe-orange.png',
         check: (r,g,b)=> r>150 && r>g+40 && r>b+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40) > 0.5
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". -> Such einen Hintergrund mit möglichst viel Natur.',
-        img: 'gruppe-gruen.png',
+        img: 'img/gruppe-gruen.png',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.5
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
-        img: 'gruppe-gruen.png',
+        img: 'img/gruppe-gruen.png',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> averageBrightness(data,w,h) < 40
     }
@@ -97,8 +97,8 @@
 
 
       // take photo
-      function takePhoto(){
-        if(!video.videoWidth || !video.videoHeight) return;
+    async function takePhoto() {
+        if (!video.videoWidth || !video.videoHeight) return;
         const canvas = document.createElement('canvas');
         // capture with natural orientation: use video dimensions
         canvas.width = video.videoWidth;
@@ -107,18 +107,22 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         // PNG overlay
-        if(overlayImg.src){
+        if (overlayImg.src) {
             const img = new Image();
             img.src = overlayImg.src;
+            await new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        photos.unshift(dataUrl); // newest first
+        photos.unshift(dataUrl);
         updatePreview();
         updateGrid();
-        triggerMessage();
-      }
+        analyzeTask(canvas); // <--- wichtig: hier prüfen und Nachricht auslösen
+    }
 
       function updatePreview(){
         if(photos.length===0){
@@ -252,15 +256,24 @@
 
       // events
       shutter.addEventListener('click', takePhoto);
-      preview.addEventListener('click', ()=> openGallery());
+      preview.addEventListener('click', () => openGallery());
       openGalleryBtn.addEventListener('click', openGallery);
       closeGalleryBtn.addEventListener('click', closeGallery);
       viewerClose.addEventListener('click', closeViewer);
-      viewer.addEventListener('click',e=>{if(e.target===viewer)closeViewer()});
+      viewer.addEventListener('click',e => {
+        if(e.target===viewer)
+        closeViewer()
+    });
       openListBtn.addEventListener('click', openList);
       closeListBtn.addEventListener('click', closeList);
-      startCameraBtn.addEventListener('click',()=>startCamera());
-      viewer.addEventListener('click', (e)=>{ if(e.target===viewer) closeViewer(); });
+      startCameraBtn.addEventListener('click',() => {
+        startCamera();
+        updateOverlay();
+      });
+      viewer.addEventListener('click', (e) => { 
+        if(e.target===viewer) 
+        closeViewer(); 
+    });
 
       // start on load
       // startCamera();
