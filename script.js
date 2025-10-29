@@ -34,31 +34,31 @@
     const tasks = [
     {
         label: '"Fange den perfekten, blauen Himmel ein." -> Platziere die Gruppe vor einem blauen Himmel.',
-        img: 'img/gruppe-blau.png',
+        img: 'gruppe-blau.png',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
         label: '"Der Chef will Farbe!" -> Finde ein Motiv mit intensiven, bunten Flächen.',
-        img: 'img/gruppe-bunt.png',
+        img: 'gruppe-bunt.png',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> colorVariance(data,w,h) > 2000
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
-        img: 'img/gruppe-orange.png',
+        img: 'gruppe-orange.png',
         check: (r,g,b)=> r>150 && r>g+40 && r>b+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40) > 0.5
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". -> Such einen Hintergrund mit möglichst viel Natur.',
-        img: 'img/gruppe-gruen.png',
+        img: 'gruppe-gruen.png',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.5
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
-        img: 'img/gruppe-gruen.png',
+        img: 'gruppe-gruen.png',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> averageBrightness(data,w,h) < 40
     }
