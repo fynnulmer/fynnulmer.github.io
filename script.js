@@ -18,14 +18,7 @@
     const startOverlay=document.getElementById('startOverlay');
     const startCameraBtn=document.getElementById('startCameraBtn');
     const overlayImg = document.createElement('img');
-    overlayImg.className = 'overlay-mask';
-    overlayImg.style.position = 'absolute';
-    overlayImg.style.top = '0';
-    overlayImg.style.left = '0';
-    overlayImg.style.width = '100%';
-    overlayImg.style.height = '100%';
-    overlayImg.style.objectFit = 'contain';
-    overlayImg.style.pointerEvents = 'none';
+    overlayImg.className = 'overlay-img';
     document.querySelector('.camera-screen').appendChild(overlayImg);
 
     const taskLabels = document.querySelectorAll('.checkbox-label');
@@ -35,30 +28,35 @@
     {
         label: '"Fange den perfekten, blauen Himmel ein." -> Platziere die Gruppe vor einem blauen Himmel.',
         img: 'img/gruppe-blau.png',
+        imgClass: 'gruppe-blau',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
         label: '"Der Chef will Farbe!" -> Finde ein Motiv mit intensiven, bunten Flächen.',
         img: 'img/gruppe-bunt.png',
+        imgClass: 'gruppe-bunt',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> colorVariance(data,w,h) > 2800
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
         img: 'img/gruppe-orange.png',
+        imgClass: 'gruppe-orange',
         check: (r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60) > 0.5
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". -> Such einen Hintergrund mit möglichst viel Natur.',
         img: 'img/gruppe-gruen.png',
+        imgClass: 'gruppe-gruen',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.6
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
         img: 'img/gruppe-dunkel.png',
+        imgClass: 'gruppe-dunkel',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> averageBrightness(data,w,h) < 80
     }
@@ -211,7 +209,6 @@ populateTaskList();
         if(passed){
             taskLabels[currentTaskIndex].querySelector('input').checked = true;
             currentTaskIndex++;
-           // setTimeout(updateOverlay(),2000);
            updateOverlay();
             showRandomMessage('positive');
         }else{
@@ -225,8 +222,16 @@ populateTaskList();
         setTimeout(()=>{
             notifFrom.textContent = 'Chef Reisebüro';
             notifText.textContent = pick;
-            showNotif();
-        },2000);
+
+        // set message colors
+        if (type === 'positive') {
+            notif.style.border = '2px solid #389A6C';
+        } else {
+            notif.style.border = '2px solid #D5576A';
+        }
+
+        showNotif();
+        },1000);
     }
 
     // Check colors
@@ -261,11 +266,13 @@ populateTaskList();
     }
 
     function updateOverlay(){
-        if(tasks[currentTaskIndex]){
+        setTimeout(()=>{
+         if(tasks[currentTaskIndex]){
             overlayImg.src = tasks[currentTaskIndex].img;
-        }else{
+         }else{
             overlayImg.src = '';
-        }
+         }
+        },2000);
     }
 
     function showNotif(){
@@ -276,7 +283,7 @@ populateTaskList();
             { transform: 'translateX(-50%) translateY(-120px)' },
             { transform: 'translateX(-50%) translateY(18px)' }
         ],{duration:450,fill:'forwards',easing:'cubic-bezier(.2,.9,.2,1)'});
-        setTimeout(()=>hideNotif(),4000);
+        setTimeout(()=>hideNotif(),4500);
     }
 
     function hideNotif(){
