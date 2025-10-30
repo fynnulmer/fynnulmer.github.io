@@ -147,7 +147,8 @@ taskLabels = document.querySelectorAll('.checkbox-label');
   const drawH = relH * canvas.height;
 
   ctx.drawImage(overlayImg, drawX, drawY, drawW, drawH);
-
+  analyzeTask(canvas);
+        
   // 3️⃣ Foto speichern
   const img = new Image();
   img.src = canvas.toDataURL('image/png');
