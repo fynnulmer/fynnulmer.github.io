@@ -34,35 +34,59 @@
     const tasks = [
     {
         label: '"Fange den perfekten, blauen Himmel ein." -> Platziere die Gruppe vor einem blauen Himmel.',
-        img: 'gruppe-blau.png',
+        img: 'img/gruppe-blau.png',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
         label: '"Der Chef will Farbe!" -> Finde ein Motiv mit intensiven, bunten Flächen.',
-        img: 'gruppe-bunt.png',
+        img: 'img/gruppe-bunt.png',
         check: (r,g,b)=> true,
-        validate: (data,w,h)=> colorVariance(data,w,h) > 2000
+        validate: (data,w,h)=> colorVariance(data,w,h) > 2800
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
-        img: 'gruppe-orange.png',
-        check: (r,g,b)=> r>150 && r>g+40 && r>b+40,
-        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40) > 0.5
+        img: 'img/gruppe-orange.png',
+        check: (r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60,
+        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60) > 0.5
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". -> Such einen Hintergrund mit möglichst viel Natur.',
-        img: 'gruppe-gruen.png',
+        img: 'img/gruppe-gruen.png',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
-        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.5
+        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.6
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
-        img: 'gruppe-gruen.png',
+        img: 'img/gruppe-dunkel.png',
         check: (r,g,b)=> true,
-        validate: (data,w,h)=> averageBrightness(data,w,h) < 40
+        validate: (data,w,h)=> averageBrightness(data,w,h) < 80
     }
     ];
+
+    function populateTaskList(){
+        const listBody = document.querySelector('.list-body ul');
+        listBody.innerHTML = ''; // alten Inhalt entfernen
+
+        tasks.forEach((task, index) => {
+            const label = document.createElement('label');
+            label.className = 'checkbox-label';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.disabled = true; // nur anzeigen, kein direktes anklicken
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(task.label));
+
+            listBody.appendChild(label);
+        });
+    }
+
+    
+
+// Aufruf beim Start
+populateTaskList();
 
     const positiveMsgs = [
         'Das sieht doch gar nicht so schlecht aus!',
@@ -75,9 +99,14 @@
     const negativeMsgs = [
         'Bitte weniger Experimente und mehr funktionierende Fotos!!',
         'Ich dachte ich hätte einen professionellen Fotografen angestellt, was soll das?',
-        'Die Redaktion wartet auf erste Previews. Nächstes bitte etwas brauchbares.',
+        'Die Redaktion wartet auf erste Previews. Nächstes Mal bitte etwas brauchbares.',
         'Heute Abend ist die Deadline, bis dahin muss das noch besser werden!',
-        'Wenn das so weiter geht können Sie sich nach einem anderen Arbeitsplatz umschauen...'
+        'Wenn das so weiter geht können Sie sich nach einem anderen Arbeitsplatz umschauen...',
+        'Wir bezahlen Sie nicht fürs Ausprobieren, sondern fürs Abliefern.',
+        'So nicht. Haben Sie überhaupt ausprobiert, was funktioniert?',
+        'Das ist nicht schlecht, aber leider auch nicht gut.',
+        'So kann das nicht weitergehen – bitte konzentrieren Sie sich!',
+        'Sind das wirklich die besten Bilder, die Sie haben?'
     ];
 
     let photos = []; // data URLs
@@ -106,6 +135,8 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+        analyzeTask(canvas); // <--- wichtig: hier prüfen und Nachricht auslösen
+
         // PNG overlay
         if (overlayImg.src) {
             const img = new Image();
@@ -121,7 +152,7 @@
         photos.unshift(dataUrl);
         updatePreview();
         updateGrid();
-        analyzeTask(canvas); // <--- wichtig: hier prüfen und Nachricht auslösen
+        
     }
 
       function updatePreview(){
@@ -180,11 +211,22 @@
         if(passed){
             taskLabels[currentTaskIndex].querySelector('input').checked = true;
             currentTaskIndex++;
-            updateOverlay();
+           // setTimeout(updateOverlay(),2000);
+           updateOverlay();
             showRandomMessage('positive');
         }else{
             showRandomMessage('negative');
         }
+    }
+
+    function showRandomMessage(type){
+        const list = type==='positive'?positiveMsgs:negativeMsgs;
+        const pick = list[Math.floor(Math.random()*list.length)];
+        setTimeout(()=>{
+            notifFrom.textContent = 'Chef Reisebüro';
+            notifText.textContent = pick;
+            showNotif();
+        },2000);
     }
 
     // Check colors
@@ -226,24 +268,15 @@
         }
     }
 
-    // Show notif
-    function showRandomMessage(type){
-        const list = type==='positive'?positiveMsgs:negativeMsgs;
-        const pick = list[Math.floor(Math.random()*list.length)];
-        setTimeout(()=>{
-            notifFrom.textContent = 'Chef Reisebüro';
-            notifText.textContent = pick;
-            showNotif();
-        },4000);
-    }
-
     function showNotif(){
+        console.log("showNotif called");
         notif.style.display='flex';
+        console.log("notif display style:", notif.style.display); // logs 'flex'
         notif.animate([
-            { transform: 'translateX(-50%) translateY(-120%)' },
-            { transform: 'translateX(-50%) translateY(20px)' }
+            { transform: 'translateX(-50%) translateY(-120px)' },
+            { transform: 'translateX(-50%) translateY(18px)' }
         ],{duration:450,fill:'forwards',easing:'cubic-bezier(.2,.9,.2,1)'});
-        setTimeout(()=>hideNotif(),2450);
+        setTimeout(()=>hideNotif(),4000);
     }
 
     function hideNotif(){
