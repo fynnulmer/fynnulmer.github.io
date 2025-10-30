@@ -27,35 +27,35 @@
     const tasks = [
     {
         label: '"Fange den perfekten, blauen Himmel ein." → Platziere die Gruppe vor einem blauen Himmel.',
-        img: 'gruppe-blau.png',
+        img: 'img/gruppe-blau.png',
         imgClass: 'gruppe-blau',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
         label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
-        img: 'gruppe-bunt.png',
+        img: 'img/gruppe-bunt.png',
         imgClass: 'gruppe-bunt',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> colorVariance(data,w,h) > 2800
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
-        img: 'gruppe-orange.png',
+        img: 'img/gruppe-orange.png',
         imgClass: 'gruppe-orange',
         check: (r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60) > 0.5
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
-        img: 'gruppe-gruen.png',
+        img: 'img/gruppe-gruen.png',
         imgClass: 'gruppe-gruen',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.6
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
-        img: 'gruppe-dunkel.png',
+        img: 'img/gruppe-dunkel.png',
         imgClass: 'gruppe-dunkel',
         check: (r,g,b)=> true,
         validate: (data,w,h)=> averageBrightness(data,w,h) < 80
@@ -120,33 +120,43 @@ taskLabels = document.querySelectorAll('.checkbox-label');
 
 
       // take photo
-    async function takePhoto() {
-        if (!video.videoWidth || !video.videoHeight) return;
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    function takePhoto() {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
-        analyzeTask(canvas);
+  // 1️⃣ Kamerabild zeichnen
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // PNG overlay
-        if (overlayImg.src) {
-            const img = new Image();
-            img.src = overlayImg.src;
-            await new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
-            });
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
+  // 2️⃣ Overlay mit denselben Maßen wie im Live-Stream zeichnen
+  const overlayRect = overlayImg.getBoundingClientRect();
+  const videoRect = video.getBoundingClientRect();
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        photos.unshift(dataUrl);
-        updatePreview();
-        updateGrid();
-        
-    }
+  // Verhältnis vom Overlay relativ zur Videoanzeige berechnen
+  const relX = (overlayRect.left - videoRect.left) / videoRect.width;
+  const relY = (overlayRect.top - videoRect.top) / videoRect.height;
+  const relW = overlayRect.width / videoRect.width;
+  const relH = overlayRect.height / videoRect.height;
+
+  // Diese relativen Werte auf das Canvas anwenden
+  const drawX = relX * canvas.width;
+  const drawY = relY * canvas.height;
+  const drawW = relW * canvas.width;
+  const drawH = relH * canvas.height;
+
+  ctx.drawImage(overlayImg, drawX, drawY, drawW, drawH);
+
+  // 3️⃣ Foto speichern
+  const img = new Image();
+  img.src = canvas.toDataURL('image/png');
+  photos.push(img.src);
+  //addThumbnail(img.src);
+  updatePreview();
+  updateGrid(); 
+}
+
 
       function updatePreview(){
         if(photos.length===0){
@@ -260,14 +270,24 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         return sum/total;
     }
 
-    function updateOverlay(){
-        setTimeout(()=>{
-         if(tasks[currentTaskIndex]){
+    function updateOverlay() {
+    setTimeout(() => {
+        // Alte Klassen entfernen
+        overlayImg.className = 'overlay-img';
+
+        // Wenn es eine nächste Aufgabe gibt
+        if (tasks[currentTaskIndex]) {
             overlayImg.src = tasks[currentTaskIndex].img;
-         }else{
+
+            // Neue Klassen hinzufügen (z. B. 'gruppe-blau')
+            if (tasks[currentTaskIndex].imgClass) {
+                overlayImg.classList.add(tasks[currentTaskIndex].imgClass);
+            }
+        } else {
+            // Wenn keine Aufgaben mehr vorhanden sind
             overlayImg.src = '';
-         }
-        },2000);
+        }
+    }, 2000);
     }
 
     function showNotif(){
@@ -312,8 +332,6 @@ taskLabels = document.querySelectorAll('.checkbox-label');
 
       // start on load
       // startCamera();
-
-      updatePreview();
       
 
     })();
