@@ -21,19 +21,19 @@
     overlayImg.className = 'overlay-img';
     document.querySelector('.camera-screen').appendChild(overlayImg);
 
-    const taskLabels = document.querySelectorAll('.checkbox-label');
+    let taskLabels = [];
     let currentTaskIndex = 0;
 
     const tasks = [
     {
-        label: '"Fange den perfekten, blauen Himmel ein." -> Platziere die Gruppe vor einem blauen Himmel.',
+        label: '"Fange den perfekten, blauen Himmel ein." → Platziere die Gruppe vor einem blauen Himmel.',
         img: 'gruppe-blau.png',
         imgClass: 'gruppe-blau',
         check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
     },
     {
-        label: '"Der Chef will Farbe!" -> Finde ein Motiv mit intensiven, bunten Flächen.',
+        label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
         img: 'gruppe-bunt.png',
         imgClass: 'gruppe-bunt',
         check: (r,g,b)=> true,
@@ -47,7 +47,7 @@
         validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60) > 0.5
     },
     {
-        label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". -> Such einen Hintergrund mit möglichst viel Natur.',
+        label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
         img: 'gruppe-gruen.png',
         imgClass: 'gruppe-gruen',
         check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
@@ -70,11 +70,6 @@
             const label = document.createElement('label');
             label.className = 'checkbox-label';
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.disabled = true; // nur anzeigen, kein direktes anklicken
-
-            label.appendChild(checkbox);
             label.appendChild(document.createTextNode(task.label));
 
             listBody.appendChild(label);
@@ -85,6 +80,7 @@
 
 // Aufruf beim Start
 populateTaskList();
+taskLabels = document.querySelectorAll('.checkbox-label');
 
     const positiveMsgs = [
         'Das sieht doch gar nicht so schlecht aus!',
@@ -127,13 +123,12 @@ populateTaskList();
     async function takePhoto() {
         if (!video.videoWidth || !video.videoHeight) return;
         const canvas = document.createElement('canvas');
-        // capture with natural orientation: use video dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        analyzeTask(canvas); // <--- wichtig: hier prüfen und Nachricht auslösen
+        analyzeTask(canvas);
 
         // PNG overlay
         if (overlayImg.src) {
@@ -207,7 +202,7 @@ populateTaskList();
         const passed = task.validate(data,width,height);
 
         if(passed){
-            taskLabels[currentTaskIndex].querySelector('input').checked = true;
+            taskLabels[currentTaskIndex].classList.add('done');
             currentTaskIndex++;
            updateOverlay();
             showRandomMessage('positive');
