@@ -56,7 +56,7 @@
     // 1. Blue
     function isBlue(r, g, b) {
         const [h, s, l] = rgbToHsl(r, g, b);
-        return h > 200 && h < 250 && s > 30 && l > 20 && l < 80;
+        return h > 180 && h < 260 && s > 20 && l > 10 && l < 90;
     }
 
     // 2. Bunt
@@ -83,7 +83,7 @@
     function isOrange(r, g, b) {
         const [h, s, l] = rgbToHsl(r, g, b);
         // Orange = hue ~20-45, saturation >50, lightness 20-70
-        return h > 10 && h < 70 && s > 50 && l > 30 && l < 80;
+        return h > 0 && h < 60 && s > 30 && l > 30 && l < 80;
     }
 
     // 4. Grün
@@ -119,7 +119,7 @@
             img: 'img/gruppe-blau.png',
             imgClass: 'gruppe-blau',
             check: isBlue,
-            validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.3
+            validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.25
         },
         {
             label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
@@ -147,7 +147,7 @@
             img: 'img/gruppe-dunkel.png',
             imgClass: 'gruppe-dunkel',
             check: (r, g, b) => true,
-            validate: (data, w, h) => averageLightness(data, w, h) < 20 // much darker using HSL lightness
+            validate: (data, w, h) => averageLightness(data, w, h) < 30 // much darker using HSL lightness
         }
     ];
 
