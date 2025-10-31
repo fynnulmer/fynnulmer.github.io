@@ -18,131 +18,138 @@
     const startOverlay=document.getElementById('startOverlay');
     const startCameraBtn=document.getElementById('startCameraBtn');
     const overlayImg = document.createElement('img');
-    overlayImg.className = 'overlay-img';
+    const downloadViewerBtn = document.getElementById('downloadViewerBtn');
+ overlayImg.className = 'overlay-img';
     document.querySelector('.camera-screen').appendChild(overlayImg);
 
     let taskLabels = [];
     let currentTaskIndex = 0;
+    let completedPhotoIndexes = []; // Stores indexes of photos that completed a task
 
-  // Utility: RGB to HSL
-function rgbToHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
+    // set screen height dynamically
+    document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    window.addEventListener('resize', () => {
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    });
 
-    if (max === min) {
-        h = s = 0; // achromatic
-    } else {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
-            case g: h = ((b - r) / d + 2); break;
-            case b: h = ((r - g) / d + 4); break;
+    // Utility: RGB to HSL
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0; // achromatic
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+                case g: h = ((b - r) / d + 2); break;
+                case b: h = ((r - g) / d + 4); break;
+            }
+            h *= 60;
         }
-        h *= 60;
+        return [h, s * 100, l * 100];
     }
-    return [h, s * 100, l * 100];
-}
 
-// 1. Blue
-function isBlue(r, g, b) {
-    const [h, s, l] = rgbToHsl(r, g, b);
-    return h > 200 && h < 250 && s > 30 && l > 20 && l < 80;
-}
-
-// 2. Bunt
-function hueVariance(data, w, h) {
-    const hues = [];
-    for (let i = 0; i < data.length; i += 4) {
-        const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-        hues.push(h);
+    // 1. Blue
+    function isBlue(r, g, b) {
+        const [h, s, l] = rgbToHsl(r, g, b);
+        return h > 200 && h < 250 && s > 30 && l > 20 && l < 80;
     }
-    const mean = hues.reduce((a, b) => a + b, 0) / hues.length;
-    const variance = hues.reduce((sum, h) => {
-        let diff = Math.abs(h - mean);
-        if (diff > 180) diff = 360 - diff;
-        return sum + diff * diff;
-    }, 0) / hues.length;
-    return variance;
-}
-function isColorful(r, g, b) {
-    const [h, s, l] = rgbToHsl(r, g, b);
-    return s > 45 && l > 15 && l < 85; // "colorful" pixel
-}
 
-// 3. Orange
-function isOrange(r, g, b) {
-    const [h, s, l] = rgbToHsl(r, g, b);
-    // Orange = hue ~20-45, saturation >50, lightness 20-70
-    return h > 15 && h < 50 && s > 50 && l > 30 && l < 80;
-}
-
-// 4. Grün
-function isGreen(r, g, b) {
-    const [h, s, l] = rgbToHsl(r, g, b);
-    // Green ~90-160, saturation >40, lightness 15-80
-    return h > 60 && h < 170 && s > 20 && l > 10 && l < 90;
-}
-
-// 5. Dunkel
-function averageLightness(data, w, h) {
-    let sum = 0;
-    const total = w * h;
-    for (let i = 0; i < data.length; i += 4) {
-        const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-        sum += l;
+    // 2. Bunt
+    function hueVariance(data, w, h) {
+        const hues = [];
+        for (let i = 0; i < data.length; i += 4) {
+            const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+            hues.push(h);
+        }
+        const mean = hues.reduce((a, b) => a + b, 0) / hues.length;
+        const variance = hues.reduce((sum, h) => {
+            let diff = Math.abs(h - mean);
+            if (diff > 180) diff = 360 - diff;
+            return sum + diff * diff;
+        }, 0) / hues.length;
+        return variance;
     }
-    return sum / total;
-}
-
-// colorRatio for HSL-based checks
-function colorRatio(data, w, h, checkFn) {
-    let ok = 0, total = w * h;
-    for (let i = 0; i < data.length; i += 4) {
-        if (checkFn(data[i], data[i + 1], data[i + 2])) ok++;
+    function isColorful(r, g, b) {
+        const [h, s, l] = rgbToHsl(r, g, b);
+        return s > 45 && l > 15 && l < 85; // "colorful" pixel
     }
-    return ok / total;
-}
 
-
-const tasks = [
-    {
-        label: '"Fange den perfekten, blauen Himmel ein." → Platziere die Gruppe vor einem blauen Himmel.',
-        img: 'img/gruppe-blau.png',
-        imgClass: 'gruppe-blau',
-        check: isBlue,
-        validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.5
-    },
-    {
-        label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
-        img: 'img/gruppe-bunt.png',
-        imgClass: 'gruppe-bunt',
-        check: isColorful,
-        validate: (data, w, h) => hueVariance(data, w, h) > 7000
-    },
-    {
-        label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
-        img: 'img/gruppe-orange.png',
-        imgClass: 'gruppe-orange',
-        check: isOrange,
-        validate: (data, w, h) => colorRatio(data, w, h, isOrange) > 0.4
-    },
-    {
-        label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
-        img: 'img/gruppe-gruen.png',
-        imgClass: 'gruppe-gruen',
-        check: isGreen,
-        validate: (data, w, h) => colorRatio(data, w, h, isGreen) > 0.3
-    },
-    {
-        label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
-        img: 'img/gruppe-dunkel.png',
-        imgClass: 'gruppe-dunkel',
-        check: (r, g, b) => true,
-        validate: (data, w, h) => averageLightness(data, w, h) < 20 // much darker using HSL lightness
+    // 3. Orange
+    function isOrange(r, g, b) {
+        const [h, s, l] = rgbToHsl(r, g, b);
+        // Orange = hue ~20-45, saturation >50, lightness 20-70
+        return h > 15 && h < 50 && s > 50 && l > 30 && l < 80;
     }
-];
+
+    // 4. Grün
+    function isGreen(r, g, b) {
+        const [h, s, l] = rgbToHsl(r, g, b);
+        // Green ~90-160, saturation >40, lightness 15-80
+        return h > 60 && h < 170 && s > 20 && l > 10 && l < 90;
+    }
+
+    // 5. Dunkel
+    function averageLightness(data, w, h) {
+        let sum = 0;
+        const total = w * h;
+        for (let i = 0; i < data.length; i += 4) {
+            const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+            sum += l;
+        }
+        return sum / total;
+    }
+
+    // colorRatio for HSL-based checks
+    function colorRatio(data, w, h, checkFn) {
+        let ok = 0, total = w * h;
+        for (let i = 0; i < data.length; i += 4) {
+            if (checkFn(data[i], data[i + 1], data[i + 2])) ok++;
+        }
+        return ok / total;
+    }
+
+    const tasks = [
+        {
+            label: '"Fange den perfekten, blauen Himmel ein." → Platziere die Gruppe vor einem blauen Himmel.',
+            img: 'img/gruppe-blau.png',
+            imgClass: 'gruppe-blau',
+            check: isBlue,
+            validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.5
+        },
+        {
+            label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
+            img: 'img/gruppe-bunt.png',
+            imgClass: 'gruppe-bunt',
+            check: isColorful,
+            validate: (data, w, h) => hueVariance(data, w, h) > 7000
+        },
+        {
+            label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
+            img: 'img/gruppe-orange.png',
+            imgClass: 'gruppe-orange',
+            check: isOrange,
+            validate: (data, w, h) => colorRatio(data, w, h, isOrange) > 0.4
+        },
+        {
+            label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
+            img: 'img/gruppe-gruen.png',
+            imgClass: 'gruppe-gruen',
+            check: isGreen,
+            validate: (data, w, h) => colorRatio(data, w, h, isGreen) > 0.3
+        },
+        {
+            label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
+            img: 'img/gruppe-dunkel.png',
+            imgClass: 'gruppe-dunkel',
+            check: (r, g, b) => true,
+            validate: (data, w, h) => averageLightness(data, w, h) < 20 // much darker using HSL lightness
+        }
+    ];
 
     function populateTaskList(){
         const listBody = document.querySelector('.list-body ul');
@@ -158,11 +165,9 @@ const tasks = [
         });
     }
 
-    
-
-// Aufruf beim Start
-populateTaskList();
-taskLabels = document.querySelectorAll('.checkbox-label');
+    // Aufruf beim Start
+    populateTaskList();
+    taskLabels = document.querySelectorAll('.checkbox-label');
 
     const positiveMsgs = [
         'Das sieht doch gar nicht so schlecht aus!',
@@ -185,17 +190,9 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         'Sind das wirklich die besten Bilder, die Sie haben?'
     ];
 
-    const nextTaskMsgs = [
-        'Hier ist der nächste Auftrag!',
-        'Bereit für die nächsten Fotos?',
-        'Weiter geht\'s zum nächsten Motiv!',
-        'Auf zum nächsten Auftrag!',
-        'Die nächste Challenge wartet schon!'
-    ];
-
     let photos = []; // data URLs
 
-      // start rear facing camera
+    // start rear facing camera
     async function startCamera(){
         try{
             const constraints={video:{facingMode:{ideal:'environment'}},audio:false};
@@ -208,97 +205,136 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         }
     }
 
-
-      // take photo
-    
+    // take photo
     function takePhoto() {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-  // 1️⃣ Kamerabild zeichnen
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // 1️⃣ Kamerabild zeichnen
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // 2️⃣ Overlay mit denselben Maßen wie im Live-Stream zeichnen
-  const overlayRect = overlayImg.getBoundingClientRect();
-  const videoRect = video.getBoundingClientRect();
+    // 2️⃣ Overlay mit denselben Maßen wie im Live-Stream zeichnen
+    const overlayRect = overlayImg.getBoundingClientRect();
+    const videoRect = video.getBoundingClientRect();
 
-  // Verhältnis vom Overlay relativ zur Videoanzeige berechnen
-  const relX = (overlayRect.left - videoRect.left) / videoRect.width;
-  const relY = (overlayRect.top - videoRect.top) / videoRect.height;
-  const relW = overlayRect.width / videoRect.width;
-  const relH = overlayRect.height / videoRect.height;
+    // Verhältnis vom Overlay relativ zur Videoanzeige berechnen
+    const relX = (overlayRect.left - videoRect.left) / videoRect.width;
+    const relY = (overlayRect.top - videoRect.top) / videoRect.height;
+    const relW = overlayRect.width / videoRect.width;
+    const relH = overlayRect.height / videoRect.height;
 
-  // Diese relativen Werte auf das Canvas anwenden
-  const drawX = relX * canvas.width;
-  const drawY = relY * canvas.height;
-  const drawW = relW * canvas.width;
-  const drawH = relH * canvas.height;
+    const drawX = relX * canvas.width;
+    const drawY = relY * canvas.height;
+    const drawW = relW * canvas.width;
+    const drawH = relH * canvas.height;
 
-  ctx.drawImage(overlayImg, drawX, drawY, drawW, drawH);
+    // --- Aspect ratio fix ---
+    const overlayAspect = overlayImg.naturalWidth / overlayImg.naturalHeight;
+    const videoAspect = video.videoWidth / video.videoHeight;
 
-  // 3️⃣ Task-Analyse durchführen und ggf. Notification anzeigen
-  analyzeTask(canvas);
+    let finalW, finalH;
+    if (videoAspect > overlayAspect) {
+        // Video is wider, constrain by height
+        finalH = drawH;
+        finalW = finalH * overlayAspect;
+    } else {
+        // Video is taller, constrain by width
+        finalW = drawW;
+        finalH = finalW / overlayAspect;
+    }
 
-  // 4️⃣ Foto speichern
-  const img = new Image();
-  img.src = canvas.toDataURL('image/png');
-  photos.push(img.src);
-  updatePreview();
-  updateGrid();
+    // Center overlay in its calculated box
+    const finalX = drawX + (drawW - finalW) / 2;
+    const finalY = drawY + (drawH - finalH) / 2;
+
+    ctx.drawImage(overlayImg, finalX, finalY, finalW, finalH);
+
+    // 3️⃣ Task-Analyse durchführen und ggf. Notification anzeigen
+    const success = analyzeTask(canvas);
+
+    // 4️⃣ Foto speichern
+    const img = new Image();
+    img.src = canvas.toDataURL('image/png');
+    photos.push(img.src);
+    if(success) {
+        completedPhotoIndexes.push(photos.length - 1);
+    }
+    updatePreview();
+    updateGrid();
 }
 
-
-      function updatePreview(){
+    function updatePreview(){
         if(photos.length===0){
-          preview.style.backgroundImage = '';
-          preview.style.display = 'none';
+            preview.style.backgroundImage = '';
+            preview.style.display = 'none';
         }else{
-          preview.style.backgroundImage = `url(${photos[photos.length - 1]})`;
-          preview.style.display = 'block';
+            preview.style.backgroundImage = `url(${photos[photos.length - 1]})`;
+            preview.style.display = 'block';
         }
-      }
+    }
 
-      function updateGrid(){
+    function updateGrid(){
         grid.innerHTML = '';
         photos.forEach((d,i)=>{
-          const img = document.createElement('img');
-          img.src = d;
-          img.alt = `Foto ${i+1}`;
-          img.addEventListener('click', ()=>openViewer(i));
-          grid.appendChild(img);
+            const img = document.createElement('img');
+            img.src = d;
+            img.alt = `Foto ${i+1}`;
+            img.className = completedPhotoIndexes.includes(i) ? 'photo-success' : '';
+            img.addEventListener('click', ()=>openViewer(i));
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'photo-wrapper';
+            wrapper.appendChild(img);
+
+            grid.appendChild(wrapper);
         });
-      }
+    }
 
-      function openGallery(){
+    function openGallery(){
         galleryOverlay.style.display = 'flex';
-      }
-      function closeGallery(){
+    }
+    function closeGallery(){
         galleryOverlay.style.display = 'none';
-      }
+    }
 
-      function openViewer(index){
+    let currentViewerIndex = null;
+
+    function openViewer(index){
         viewerImg.src = photos[index];
         viewer.style.display = 'flex';
-      }
-      function closeViewer(){
+        currentViewerIndex = index;
+    }
+    function closeViewer(){
         viewer.style.display = 'none';
-      }
+        currentViewerIndex = null;
+    }
 
-      function openList(){
+    function openList(){
         listOverlay.style.display = 'flex';
-      }
+    }
 
-      function closeList(){
+    function closeList(){
         listOverlay.style.display = 'none';
-      }
+    }
+
+    downloadViewerBtn.addEventListener('click', function(e) {
+        if (currentViewerIndex !== null) {
+            const url = photos[currentViewerIndex];
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `photo_${currentViewerIndex + 1}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    });
 
     function analyzeTask(canvas){
-        if(currentTaskIndex >= tasks.length) return;
+        if(currentTaskIndex >= tasks.length) return false;
         const ctx = canvas.getContext('2d');
         const {data,width,height} = ctx.getImageData(0,0,canvas.width,canvas.height);
-
 
         const task = tasks[currentTaskIndex];
         const passed = task.validate(data,width,height);
@@ -306,11 +342,12 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         if(passed){
             taskLabels[currentTaskIndex].classList.add('done');
             currentTaskIndex++;
-           updateOverlay();
+            updateOverlay();
             showRandomMessage('positive');
         }else{
             showRandomMessage('negative');
         }
+        return passed;
     }
 
     function showRandomMessage(type){
@@ -320,22 +357,9 @@ taskLabels = document.querySelectorAll('.checkbox-label');
             notifFrom.textContent = 'Chef Reisebüro';
             notifText.textContent = pick;
 
-            notif.style.border = type === 'positive' ? '2px solid #389A6C' : '2px solid #D5576A';
+            notif.style.border = type === 'positive' ? '2px solid #38c172' : '2px solid #D5576A';
             showNotif();
-
-         // Show secondary message if positive
-        if(type === 'positive') {
-            setTimeout(() => showNextTaskMessage(), 4500); // After positive msg fades in
-        }
         },2000);
-    }
-
-    function showNextTaskMessage() {
-        const pick = nextTaskMsgs[Math.floor(Math.random()*nextTaskMsgs.length)];
-        notifFrom.textContent = '';
-        notifText.textContent = pick;
-        notif.style.border = '2px solid #389A6C';
-        showNotif();
     }
 
     // Check colors
@@ -370,18 +394,18 @@ taskLabels = document.querySelectorAll('.checkbox-label');
     }
 
     function updateOverlay() {
-    setTimeout(() => {
-        overlayImg.className = 'overlay-img';
-        if (tasks[currentTaskIndex]) {
-            overlayImg.src = tasks[currentTaskIndex].img;
-            if (tasks[currentTaskIndex].imgClass) {
-                overlayImg.classList.add(tasks[currentTaskIndex].imgClass);
+        setTimeout(() => {
+            overlayImg.className = 'overlay-img';
+            if (tasks[currentTaskIndex]) {
+                overlayImg.src = tasks[currentTaskIndex].img;
+                if (tasks[currentTaskIndex].imgClass) {
+                    overlayImg.classList.add(tasks[currentTaskIndex].imgClass);
+                }
+            } else {
+                overlayImg.src = '';
+                showCompletionPopup();
             }
-        } else {
-            overlayImg.src = '';
-            showCompletionPopup();
-        }
-    }, 2000);
+        }, 2000);
     }
 
     function showCompletionPopup() {
@@ -417,30 +441,28 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         ],{duration:420,fill:'forwards',easing:'cubic-bezier(.2,.9,.2,1)'}).onfinish=()=>notif.style.display='none';
     }
 
-
-      // events
-      shutter.addEventListener('click', takePhoto);
-      preview.addEventListener('click', () => openGallery());
-      openGalleryBtn.addEventListener('click', openGallery);
-      closeGalleryBtn.addEventListener('click', closeGallery);
-      viewerClose.addEventListener('click', closeViewer);
-      viewer.addEventListener('click',e => {
+    // events
+    shutter.addEventListener('click', takePhoto);
+    preview.addEventListener('click', () => openGallery());
+    openGalleryBtn.addEventListener('click', openGallery);
+    closeGalleryBtn.addEventListener('click', closeGallery);
+    viewerClose.addEventListener('click', closeViewer);
+    viewer.addEventListener('click',e => {
         if(e.target===viewer)
-        closeViewer()
+            closeViewer()
     });
-      openListBtn.addEventListener('click', openList);
-      closeListBtn.addEventListener('click', closeList);
-      startCameraBtn.addEventListener('click',() => {
+    openListBtn.addEventListener('click', openList);
+    closeListBtn.addEventListener('click', closeList);
+    startCameraBtn.addEventListener('click',() => {
         startCamera();
         updateOverlay();
-      });
-      viewer.addEventListener('click', (e) => { 
+    });
+    viewer.addEventListener('click', (e) => { 
         if(e.target===viewer) 
-        closeViewer(); 
+            closeViewer(); 
     });
 
-      // start on load
-      // startCamera();
-      
+    // start on load
+    // startCamera();
 
-    })();
+})();
