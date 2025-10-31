@@ -24,43 +24,125 @@
     let taskLabels = [];
     let currentTaskIndex = 0;
 
-    const tasks = [
+  // Utility: RGB to HSL
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+            case g: h = ((b - r) / d + 2); break;
+            case b: h = ((r - g) / d + 4); break;
+        }
+        h *= 60;
+    }
+    return [h, s * 100, l * 100];
+}
+
+// 1. Blue
+function isBlue(r, g, b) {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    return h > 200 && h < 250 && s > 30 && l > 20 && l < 80;
+}
+
+// 2. Bunt
+function hueVariance(data, w, h) {
+    const hues = [];
+    for (let i = 0; i < data.length; i += 4) {
+        const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+        hues.push(h);
+    }
+    const mean = hues.reduce((a, b) => a + b, 0) / hues.length;
+    const variance = hues.reduce((sum, h) => {
+        let diff = Math.abs(h - mean);
+        if (diff > 180) diff = 360 - diff;
+        return sum + diff * diff;
+    }, 0) / hues.length;
+    return variance;
+}
+function isColorful(r, g, b) {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    return s > 45 && l > 15 && l < 85; // "colorful" pixel
+}
+
+// 3. Orange
+function isOrange(r, g, b) {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    // Orange = hue ~20-45, saturation >50, lightness 20-70
+    return h > 15 && h < 50 && s > 50 && l > 30 && l < 80;
+}
+
+// 4. Grün
+function isGreen(r, g, b) {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    // Green ~90-160, saturation >40, lightness 15-80
+    return h > 60 && h < 170 && s > 20 && l > 10 && l < 90;
+}
+
+// 5. Dunkel
+function averageLightness(data, w, h) {
+    let sum = 0;
+    const total = w * h;
+    for (let i = 0; i < data.length; i += 4) {
+        const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+        sum += l;
+    }
+    return sum / total;
+}
+
+// colorRatio for HSL-based checks
+function colorRatio(data, w, h, checkFn) {
+    let ok = 0, total = w * h;
+    for (let i = 0; i < data.length; i += 4) {
+        if (checkFn(data[i], data[i + 1], data[i + 2])) ok++;
+    }
+    return ok / total;
+}
+
+
+const tasks = [
     {
         label: '"Fange den perfekten, blauen Himmel ein." → Platziere die Gruppe vor einem blauen Himmel.',
         img: 'img/gruppe-blau.png',
         imgClass: 'gruppe-blau',
-        check: (r,g,b)=> b>100 && b>r+40 && b>g+40,
-        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> b>100 && b>r+40 && b>g+40) > 0.6
+        check: isBlue,
+        validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.5
     },
     {
         label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
         img: 'img/gruppe-bunt.png',
         imgClass: 'gruppe-bunt',
-        check: (r,g,b)=> true,
-        validate: (data,w,h)=> colorVariance(data,w,h) > 2800
+        check: isColorful,
+        validate: (data, w, h) => hueVariance(data, w, h) > 7000
     },
     {
         label: '"Finde einen Hintergrund, der farblich gut zur Kleidung der Reisegruppe passt. Das erzeugt Harmonie im Reisekatalog."',
         img: 'img/gruppe-orange.png',
         imgClass: 'gruppe-orange',
-        check: (r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60,
-        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> r>150 && r>g+40 && r>b+40 && g>b+60) > 0.5
+        check: isOrange,
+        validate: (data, w, h) => colorRatio(data, w, h, isOrange) > 0.4
     },
     {
         label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
         img: 'img/gruppe-gruen.png',
         imgClass: 'gruppe-gruen',
-        check: (r,g,b)=> g>100 && g>r+30 && g>b+30,
-        validate: (data,w,h)=> colorRatio(data,w,h,(r,g,b)=> g>100 && g>r+30 && g>b+30) > 0.6
+        check: isGreen,
+        validate: (data, w, h) => colorRatio(data, w, h, isGreen) > 0.3
     },
     {
         label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
         img: 'img/gruppe-dunkel.png',
         imgClass: 'gruppe-dunkel',
-        check: (r,g,b)=> true,
-        validate: (data,w,h)=> averageBrightness(data,w,h) < 80
+        check: (r, g, b) => true,
+        validate: (data, w, h) => averageLightness(data, w, h) < 20 // much darker using HSL lightness
     }
-    ];
+];
 
     function populateTaskList(){
         const listBody = document.querySelector('.list-body ul');
@@ -101,6 +183,14 @@ taskLabels = document.querySelectorAll('.checkbox-label');
         'Das ist nicht schlecht, aber leider auch nicht gut.',
         'So kann das nicht weitergehen – bitte konzentrieren Sie sich!',
         'Sind das wirklich die besten Bilder, die Sie haben?'
+    ];
+
+    const nextTaskMsgs = [
+        'Hier ist der nächste Auftrag!',
+        'Bereit für die nächsten Fotos?',
+        'Weiter geht\'s zum nächsten Motiv!',
+        'Auf zum nächsten Auftrag!',
+        'Die nächste Challenge wartet schon!'
     ];
 
     let photos = []; // data URLs
@@ -147,15 +237,16 @@ taskLabels = document.querySelectorAll('.checkbox-label');
   const drawH = relH * canvas.height;
 
   ctx.drawImage(overlayImg, drawX, drawY, drawW, drawH);
+
+  // 3️⃣ Task-Analyse durchführen und ggf. Notification anzeigen
   analyzeTask(canvas);
-        
-  // 3️⃣ Foto speichern
+
+  // 4️⃣ Foto speichern
   const img = new Image();
   img.src = canvas.toDataURL('image/png');
   photos.push(img.src);
-  //addThumbnail(img.src);
   updatePreview();
-  updateGrid(); 
+  updateGrid();
 }
 
 
@@ -164,7 +255,7 @@ taskLabels = document.querySelectorAll('.checkbox-label');
           preview.style.backgroundImage = '';
           preview.style.display = 'none';
         }else{
-          preview.style.backgroundImage = `url(${photos[0]})`;
+          preview.style.backgroundImage = `url(${photos[photos.length - 1]})`;
           preview.style.display = 'block';
         }
       }
@@ -229,15 +320,22 @@ taskLabels = document.querySelectorAll('.checkbox-label');
             notifFrom.textContent = 'Chef Reisebüro';
             notifText.textContent = pick;
 
-        // set message colors
-        if (type === 'positive') {
-            notif.style.border = '2px solid #389A6C';
-        } else {
-            notif.style.border = '2px solid #D5576A';
-        }
+            notif.style.border = type === 'positive' ? '2px solid #389A6C' : '2px solid #D5576A';
+            showNotif();
 
+         // Show secondary message if positive
+        if(type === 'positive') {
+            setTimeout(() => showNextTaskMessage(), 4500); // After positive msg fades in
+        }
+        },2000);
+    }
+
+    function showNextTaskMessage() {
+        const pick = nextTaskMsgs[Math.floor(Math.random()*nextTaskMsgs.length)];
+        notifFrom.textContent = '';
+        notifText.textContent = pick;
+        notif.style.border = '2px solid #389A6C';
         showNotif();
-        },1000);
     }
 
     // Check colors
@@ -273,22 +371,32 @@ taskLabels = document.querySelectorAll('.checkbox-label');
 
     function updateOverlay() {
     setTimeout(() => {
-        // Alte Klassen entfernen
         overlayImg.className = 'overlay-img';
-
-        // Wenn es eine nächste Aufgabe gibt
         if (tasks[currentTaskIndex]) {
             overlayImg.src = tasks[currentTaskIndex].img;
-
-            // Neue Klassen hinzufügen (z. B. 'gruppe-blau')
             if (tasks[currentTaskIndex].imgClass) {
                 overlayImg.classList.add(tasks[currentTaskIndex].imgClass);
             }
         } else {
-            // Wenn keine Aufgaben mehr vorhanden sind
             overlayImg.src = '';
+            showCompletionPopup();
         }
     }, 2000);
+    }
+
+    function showCompletionPopup() {
+        document.getElementById('completionPopup').style.display = 'flex';
+    }
+
+    document.getElementById('restartBtn').addEventListener('click', restartTasks);
+
+    function restartTasks() {
+        // Hide popup
+        document.getElementById('completionPopup').style.display = 'none';
+        // Reset task progress
+        currentTaskIndex = 0;
+        taskLabels.forEach(label => label.classList.remove('done'));
+        updateOverlay(); // Show first task overlay again
     }
 
     function showNotif(){
