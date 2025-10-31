@@ -334,6 +334,38 @@
         opacity:.6;
     }
 
+    .completion-popup {
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100vw; 
+        height: 100vh;
+        background: rgba(0,0,0,0.75); 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 9999;
+    }
+
+    .completion-content {
+        background: white; 
+        padding: 16px; 
+        border-radius: 12px; 
+        max-width: 80%; 
+        text-align: center;
+    }
+
+    #restartBtn {
+        margin-top: 1.5em; 
+        padding: 12px 30px; 
+        font-size: 20px;
+        border: none;
+        color: white;
+        background-color: black;
+        border-radius: 60px;
+    }
+    
+
     /* subtle UI elements */
 
     .start-overlay{
