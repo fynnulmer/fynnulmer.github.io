@@ -83,7 +83,7 @@
     function isOrange(r, g, b) {
         const [h, s, l] = rgbToHsl(r, g, b);
         // Orange = hue ~20-45, saturation >50, lightness 20-70
-        return h > 15 && h < 50 && s > 50 && l > 30 && l < 80;
+        return h > 10 && h < 70 && s > 50 && l > 30 && l < 80;
     }
 
     // 4. Grün
@@ -119,7 +119,7 @@
             img: 'img/gruppe-blau.png',
             imgClass: 'gruppe-blau',
             check: isBlue,
-            validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.5
+            validate: (data, w, h) => colorRatio(data, w, h, isBlue) > 0.3
         },
         {
             label: '"Der Chef will Farbe!" → Finde ein Motiv mit intensiven, bunten Flächen.',
@@ -133,14 +133,14 @@
             img: 'img/gruppe-orange.png',
             imgClass: 'gruppe-orange',
             check: isOrange,
-            validate: (data, w, h) => colorRatio(data, w, h, isOrange) > 0.4
+            validate: (data, w, h) => colorRatio(data, w, h, isOrange) > 0.2
         },
         {
             label: '"Die Redaktion sagt wir brauchen mehr “Nature Vibes”". → Such einen Hintergrund mit möglichst viel Natur.',
             img: 'img/gruppe-gruen.png',
             imgClass: 'gruppe-gruen',
             check: isGreen,
-            validate: (data, w, h) => colorRatio(data, w, h, isGreen) > 0.3
+            validate: (data, w, h) => colorRatio(data, w, h, isGreen) > 0.2
         },
         {
             label: '"Fang die Gruppe beim Sterne beobachten ein. Achte auf einen schönen Sternenhimmel."',
